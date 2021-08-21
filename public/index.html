@@ -4,42 +4,238 @@
 	<title>Ping Pong Game</title>
 </head>
 <body>
-	<canvas id="canvas" width="800" height="400"></canvas>
+	<canvas id="canvas"></canvas>
 	<script type="text/javascript" src="js/app.js"></script>
 	<script type="text/javascript">
 		//Sample functions, remove these functions and design ping-pong game with onInit and onUpdate.
+		var canvas = document.getElementById("canvas");
+		var ctx = canvas.getContext("2d");
+        var canvasWidth=canvas.width;
+        var canvasHeight=canvas.height;
+		var player = {
+			pressingS: false,
+			pressingW: false,
+			pressingDown: false,
+			pressingup: false,
+			pause: false,
+			speed: 10,
+		} ;
+
+		canvas.setAttribute('width', window.innerWidth);
+		canvas.setAttribute('height', window.innerHeight);
+
+		// Remove Scrollbars: https://stackoverflow.com/questions/26745292/canvas-toggle-filling-whole-page-removing-scrollbar
+		document.body.scrollTop = 0; // <-- pull the page back up to the top
+        document.body.style.overflow = 'hidden'; // <-- relevant addition
+		
+		app.reset = function(){
+			for(var index in this.nodes){
+			var node = this.nodes[index];
+
+				if(node.id === 'ball'){
+					node.x=this.width/2;
+					node.y= this.height/2;
+					node.angle= Math.random()*360;
+				}
+			}
+		}
 
 		app.onInit = function(){
+			this.width = window.innerWidth;
+			this.height = window.innerHeight ;
+
 			this.nodes.push({
-				id : 'red-box',
-				x  : 100,
-				y  : 0,
-				width  : 100,
-				height : 100,
-				color  : 'red',
-				direction : 0
+				id: 'player1',
+				x: 40,
+				y: 40,
+				width : 15,
+				height: 100, 
+				color:'black',
+				name: '1',
+				score: 0,
+				
 			});
 
 			this.nodes.push({
-				id : 'black-box',
-				x  : 50,
-				y  : 0,
-				width  : 150,
-				height : 150,
-				color  : 'black'
+				id: 'player2',
+				x: this.width - 40,
+				y: 40,
+				width: 15,
+				height: 100,
+				color: 'black',
+				name:'2',
+				score: 0, 
+				
 			});
+			
+			this.nodes.push({
+				id: 'ball',
+				x: this.width/2,
+				y: this.height/2,
+				width: 20, 
+				height: 20, 
+				color: 'red',
+				name: 'B',
+				angle: Math.random()*360,
+			});
+			
+			
 		};
+		
+		testCollisionRectRect = function(rect1,rect2){
+			var ax1 = rect1.x;
+			var ax2 = rect1.x + rect1.width;
+			var ay1 = rect1.y;
+			var ay2 = rect1.y + rect1.height;
+			var bx1 = rect2.x;
+			var bx2 = rect2.x + rect2.width;
+			var by1 = rect2.y;
+			var by2 = rect2.y + rect2.height;
+			
+			var xOverlap =	(ax1 >= bx1 && ax1 <= bx2) ||
+							(ax2 >= bx1 && ax2 <= bx2) ||
+							(bx1 >= ax1 && bx1 <= ax2) ||
+							(bx2 >= ax1 && bx2 <= ax2); 
+							
+			var yOverlap =	(ay1 >= by1 && ay1 <= by2) ||
+							(ay2 >= by1 && ay2 <= by2) ||
+							(by1 >= ay1 && by1 <= ay2) ||
+							(by2 >= ay1 && by2 <= ay2); 
+							
+			var overlaps =	xOverlap && yOverlap;
 
+			return overlaps;
+			
+		}
+		document.onkeydown = function (event) {
+			if (event.keyCode === 83)	//s
+				player.pressingS = true;
+			else if (event.keyCode === 87) // w
+				player.pressingW = true;
+			else if (event.keyCode === 38) //up
+				player.pressingUp = true;
+			else if (event.keyCode === 40) //down
+				player.pressingDown = true;
+			else if (event.keyCode === 32) //space
+				player.pause = !player.pause;
+		}
+
+		document.onkeyup = function (event) {
+			if (event.keyCode === 83)	//s
+				player.pressingS = false;
+			else if (event.keyCode === 87) // w
+				player.pressingW = false;
+			else if (event.keyCode === 38) //up
+				player.pressingUp = false;
+			else if (event.keyCode === 40) //down
+				player.pressingDown = false;
+		}
+		app.addScore = function(player){
+			for(var index in this.nodes){
+			var node = this.nodes[index];
+
+				if(node.id === player){
+					node.score += 1;
+				}
+			}
+		}
 		app.onUpdate = function(time){
-			this.getNode('black-box').y++;
 
-			if(Math.cos(this.timestamp / 100) > 0){
-				this.getNode('red-box').direction = -1;
-			}else{
-				this.getNode('red-box').direction = 1;
+			if(player.pause === true){
+				return
+			}
+			
+			var player1= {}; 
+			var player2={}; 
+			var ball={};
+
+			for(var index in this.nodes){
+			var node = this.nodes[index];
+				
+
+				if(node.id === 'player1'){
+					player1 = node;
+					if(player.pressingS === true) {
+						node.y += player.speed;
+					} 
+					if(player.pressingW === true) {
+						node.y -= player.speed;
+					}
+					
+				} else if (node.id === 'player2'){
+					player2 = node;
+					if(player.pressingUp === true) {
+						node.y -= player.speed;
+					} 
+					if(player.pressingDown === true) {
+						node.y += player.speed;
+					}
+				} else if (node.id === 'ball') {
+					ball = node;
+				}
+
 			}
 
-			this.getNode('red-box').x+=this.getNode('red-box').direction;
+			//player and ball variables should be vaild now
+
+			
+			//stop player1 at top
+			var angle = ball.angle;
+			if(player1.y <= 0){
+				player1.y = 0
+			}
+			//stop player1 at bottom
+			else if(player1.y + player1.height >= this.height){
+				player1.y = this.height - player1.height;
+			}
+
+			//stop player2 at top
+			if(player2.y <= 0){
+				player2.y = 0
+			}
+			//stop player2 at bottom
+			else if(player2.y + player2.height >= this.height){
+				player2.y = this.height - player2.height;
+			}
+			//test for bounce at top
+			if(ball.y <= 0){
+				angle = 360-angle;
+				ball.angle = angle;
+			}
+			//test for bounce at bottom
+			else if(ball.y + ball.height >= this.height ){
+				angle = 360-angle;
+				ball.angle = angle;
+			}
+			//test for left collision
+			else if(ball.x <= 0 ){
+				app.addScore('player2')
+				console.log('player2 scores')
+				app.reset();
+
+			}
+			//test for right collision
+			else if(ball.x + ball.width >= this.width ){
+				app.addScore('player1')
+				console.log('player1 scores')
+				app.reset();
+			}
+			else if(testCollisionRectRect(player1, ball)){
+				angle = 360-(128-angle);
+				ball.angle= angle;
+			}
+			else if(testCollisionRectRect(player2, ball)){
+				angle = 360-(128-angle);
+				ball.angle= angle;
+			}
+		
+			var spdX = Math.cos(angle/180*Math.PI)*5;
+			var spdY = Math.sin(angle/180*Math.PI)*5;
+
+			ball.x += spdX;
+			ball.y += spdY;
+
+
 		};
 	</script>
 </body>
